@@ -70,7 +70,7 @@
 
 \texttt{rars test.asm} $\Rightarrow$ compile et lance le programme en console.
 
-Attention, lorsqu'on « include » un fichier, les étiquettes doivent rester uniques. Le mieux est de les préfixer avec le nom de la fonction.
+Attention, lorsqu'on \guillemotleft{} include \guillemotright{} un fichier, les étiquettes doivent rester uniques. Le mieux est de les préfixer avec le nom de la fonction.
 
 Générer un tableau aléatoire de 20 entrées (pour \texttt{tab.asm}) :
 
@@ -87,7 +87,7 @@ python3 -c "import random; random.seed(); \
 
 \begin{itemize}
     \item Ouvrir le fichier \texttt{.asm} à tester.
-    \item \texttt{Tools} $\rightarrow$ \texttt{Instruction Counter}, puis « Connect to program ».
+    \item \texttt{Tools} $\rightarrow$ \texttt{Instruction Counter}, puis \guillemotleft{} Connect to program \guillemotright{}.
     \item \texttt{Settings} $\rightarrow$ \texttt{Hexadecimal Values}.
     \item \texttt{Settings} $\rightarrow$ \texttt{Hexadecimal Addresses}.
 \end{itemize}
@@ -154,14 +154,14 @@ Trois lectures utiles :
 \toprule
 \textbf{Type de comparaison} & \textbf{Formule} & \textbf{Ce que ça dit} \\
 \midrule
-Ratio entre algos      & $\text{total}_A / \text{total}_B$ & « A est $2{,}3\times$ plus lent que B » \\
+Ratio entre algos      & $\text{total}_A / \text{total}_B$ & \guillemotleft{} A est $2{,}3\times$ plus lent que B \guillemotright{} \\
 Intensité mémoire      & $(I+S) / \text{total}$            & part des instructions qui touchent la RAM \\
 Vérification théorique & $\text{total} / n^2$ ou $\text{total} / (n \log_2 n)$ & le coefficient doit rester à peu près constant si l'on refait le test avec un autre $n$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-La dernière ligne est la plus intéressante pour un rapport d'archi : elle valide (ou non) la complexité théorique. Pour la bulle avec $n=20$, le coût « pur tri » $\approx 2698 - \text{print}$ instructions, divisé par $20^2 = 400$ $\rightarrow$ on obtient une constante $\sim X$. En refaisant avec $n=50$, on doit retomber sur un ordre $\sim X$.
+La dernière ligne est la plus intéressante pour un rapport d'archi : elle valide (ou non) la complexité théorique. Pour la bulle avec $n=20$, le coût \guillemotleft{} pur tri \guillemotright{} $\approx 2698 - \text{print}$ instructions, divisé par $20^2 = 400$ $\rightarrow$ on obtient une constante $\sim X$. En refaisant avec $n=50$, on doit retomber sur un ordre $\sim X$.
 
 \subsection{Mémoire}
 
@@ -287,7 +287,7 @@ négligeable devant le tri lui-même (notamment pour le tas).
 
 \paragraph{Coût de \texttt{print\_tab} à grande échelle.}
 
-Référence utile : démarrage « à vide » de RARS (un
+Référence utile : démarrage \guillemotleft{} à vide \guillemotright{} de RARS (un
 \texttt{.asm} qui termine immédiatement) $=$ \textbf{187 ms}. Tout ce
 qui dépasse cette baseline est imputable au programme de test.
 
