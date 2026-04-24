@@ -1,0 +1,239 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{babel}
+\babelprovide[main, import]{french}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{textcomp}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% Style pour coder l'assembleur RISC-V
+\lstdefinestyle{riscv}{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    morekeywords={addi,add,sub,mul,div,lw,sw,li,la,mv,j,jal,jalr,ret,bge,bgeu,blt,bltu,ble,beq,bne,bltz,beqz,blez,bgtz,slli,srli,srai,ecall,nop}
+}
+
+\lstdefinestyle{bash}{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+}
+
+\title{Comparaison d'algorithmes de tri en RISC-V}
+\author{Hubert Lestrat \\ \small Polytech-Sorbonne --- MAIN3 Architecture des ordinateurs}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\vspace{1em}
+
+% =================================================================
+\section{Références}
+% =================================================================
+
+\begin{itemize}
+    \item \url{https://www.laurentbloch.net/MySpip3/Mon-premier-programme-en-assembleur-RISC-V}
+    \item \url{https://www.laurentbloch.net/MySpip3/Nouvel-episode-de-programmation-en-assembleur-RISC-V}
+    \item \url{https://www.laurentbloch.net/MySpip3/Assembleur-RISC-V-maintenant-les-tris}
+    \item \url{https://fr.wikipedia.org/wiki/Tri_\%C3\%A0_bulles}
+\end{itemize}
+
+% =================================================================
+\section{Astuces}
+% =================================================================
+
+\texttt{rars test.asm} $\Rightarrow$ compile et lance le programme en console.
+
+Attention, lorsqu'on « include » un fichier, les étiquettes doivent rester uniques. Le mieux est de les préfixer avec le nom de la fonction.
+
+Générer un tableau aléatoire de 20 entrées (pour \texttt{tab.asm}) :
+
+\begin{lstlisting}[style=bash]
+python3 -c "import random; random.seed(); \
+  print(', '.join(str(random.randint(-99, 99)) for _ in range(20)))"
+\end{lstlisting}
+
+% =================================================================
+\section{Méthode de mesures}
+% =================================================================
+
+\subsection{Dans RARS}
+
+\begin{itemize}
+    \item Ouvrir le fichier \texttt{.asm} à tester.
+    \item \texttt{Tools} $\rightarrow$ \texttt{Instruction Counter}, puis « Connect to program ».
+    \item \texttt{Settings} $\rightarrow$ \texttt{Hexadecimal Values}.
+    \item \texttt{Settings} $\rightarrow$ \texttt{Hexadecimal Addresses}.
+\end{itemize}
+
+\begin{enumerate}
+    \item \textbf{Assemble} (F3).
+    \item Clic sur \textbf{Reset} dans la fenêtre Instruction Counter (important : vider entre deux tests).
+    \item \textbf{Run} (F5) jusqu'à la fin.
+    \item Relever les chiffres.
+\end{enumerate}
+
+\paragraph{Exécution.} Dans \texttt{Instruction Counter} :
+\begin{itemize}
+    \item Ligne \emph{Instructions so far} $\rightarrow$ métrique principale.
+    \item Décomposition R / I / S / B / U / J $\rightarrow$ utile pour distinguer calcul pur vs accès mémoire (les S-type $=$ stores, les loads sont des I-type).
+\end{itemize}
+
+\paragraph{Mémoire --- lecture directe dans RARS.}
+\begin{itemize}
+    \item \textbf{Text Segment} : scroller jusqu'à la dernière instruction de la fonction, noter l'adresse du label d'entrée et l'adresse juste après \texttt{ret}. Différence $=$ taille du code en octets.
+    \item \textbf{Data Segment} : idem pour \texttt{tab} et les constantes. On y voit le tableau avant/après le tri, utile pour vérifier.
+    \item \textbf{Pile} : regarder \texttt{sp} dans la fenêtre \emph{Registers} avant l'appel, puis mettre un breakpoint sur la 1\textsuperscript{re} instruction de la fonction pour voir \texttt{sp} après le prologue. La différence $=$ octets consommés sur la pile par appel. Pour un algo itératif comme le tri à bulles, elle ne grandit jamais au-delà.
+\end{itemize}
+
+% =================================================================
+\section{Résultats}
+% =================================================================
+
+\emph{Les appels des fonctions communes sont considérés négligeables. Par exemple \texttt{print\_tab} est appelée de la même manière sur tous les algorithmes.}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrrcc}
+\toprule
+\textbf{Algorithme} & \textbf{Instr. tot.} & \textbf{R} & \textbf{I} & \textbf{S} & \textbf{B} & \textbf{U} & \textbf{J} & \textbf{Pile (o)} & \textbf{Récursif} & \textbf{Complexité} \\
+\midrule
+Tri à bulles       & \textbf{2\,698} & 709 & 1\,097 & 235 & 322 & 48 & 287 & 20 & non & $O(n^2)$ \\
+Tri par sélection  &                 &     &        &     &     &    &     &    &     & $O(n^2)$ \\
+Tri par insertion  &                 &     &        &     &     &    &     &    &     & $O(n^2)$ \\
+Tri rapide         &                 &     &        &     &     &    &     &    & oui & $O(n \log n)$ moy. \\
+Tri fusion         &                 &     &        &     &     &    &     &    & oui & $O(n \log n)$ \\
+Tri par tas        & \textbf{2\,481} & 925 &    830 & 144 & 385 & 48 & 149 & 16 & non & $O(n \log n)$ \\
+\bottomrule
+\end{tabular}
+\caption{Comparaison des algorithmes de tri sur un tableau de 20 entiers.}
+\label{tab:resultats}
+\end{table}
+
+% =================================================================
+\section{VRAC à travailler}
+% =================================================================
+
+\subsection{Temps ($=$ nombre d'instructions)}
+
+Comparaison directe : la colonne \emph{Total instr.} suffit. Plus petit $=$ plus rapide.
+
+Trois lectures utiles :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{4cm} p{5cm} p{6cm}}
+\toprule
+\textbf{Type de comparaison} & \textbf{Formule} & \textbf{Ce que ça dit} \\
+\midrule
+Ratio entre algos      & $\text{total}_A / \text{total}_B$ & « A est $2{,}3\times$ plus lent que B » \\
+Intensité mémoire      & $(I+S) / \text{total}$            & part des instructions qui touchent la RAM \\
+Vérification théorique & $\text{total} / n^2$ ou $\text{total} / (n \log_2 n)$ & le coefficient doit rester à peu près constant si l'on refait le test avec un autre $n$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La dernière ligne est la plus intéressante pour un rapport d'archi : elle valide (ou non) la complexité théorique. Pour la bulle avec $n=20$, le coût « pur tri » $\approx 2698 - \text{print}$ instructions, divisé par $20^2 = 400$ $\rightarrow$ on obtient une constante $\sim X$. En refaisant avec $n=50$, on doit retomber sur un ordre $\sim X$.
+
+\subsection{Mémoire}
+
+Là, un seul chiffre ne suffit pas. Il faut distinguer deux composantes.
+
+\paragraph{a.~Mémoire statique (code $+$ données).}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{5cm} p{9cm}}
+\toprule
+\textbf{Composant} & \textbf{Comment mesurer dans RARS} \\
+\midrule
+Taille du code de l'algo     & adresse de \texttt{ret} $-$ adresse du label d'entrée (en octets) \\
+Données auxiliaires allouées & regarder \texttt{.data} du fichier : tables de travail, buffers\ldots \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Pour la bulle : juste du code, $0$ octet de données auxiliaires (tri in-place).
+Pour le tri fusion : on allouera un tableau temporaire $\rightarrow$ $+4n$ octets de données.
+
+\paragraph{b.~Mémoire dynamique (pile) --- c'est ça qui diffère vraiment.}
+
+La bonne métrique n'est pas un octet absolu, c'est la fonction de $n$ :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{6cm} p{4cm} p{2.5cm} p{3cm}}
+\toprule
+\textbf{Algo type} & \textbf{Pile consommée} & \textbf{Pour $n=20$} & \textbf{Pour $n=1000$} \\
+\midrule
+Itératif (bulle, insertion, sélection) & constante (1 cadre) & $20$ o    & $20$ o \\
+Récursif équilibré (fusion, tas)       & cadre $\times \log_2(n)$ & $\sim 5$ cadres & $\sim 10$ cadres \\
+Récursif dégénéré (quicksort pire)     & cadre $\times n$    & $20$ cadres & $1000$ cadres ! \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dans RARS on lit :
+\begin{itemize}
+    \item \textbf{Taille d'un cadre} $\rightarrow$ dans le prologue : \texttt{addi sp, sp, -N} $\rightarrow$ $N$ octets.
+    \item \textbf{Profondeur max} $\rightarrow$ registre \texttt{sp} pendant l'exécution (breakpoint à l'intérieur de la fonction récursive), ou instrumentation \texttt{sp\_min} si besoin.
+\end{itemize}
+
+\paragraph{Résumé : ce qu'il faut présenter dans le rapport.}
+
+Deux tableaux, pas un.
+
+\textbf{Tableau 1 --- Temps}
+\begin{center}
+\begin{tabular}{llll}
+Algo & Total instr. & Ratio vs plus rapide & Coefficient $\text{total} / n^2$ ou $/ (n \log n)$ \\
+\end{tabular}
+\end{center}
+
+\textbf{Tableau 2 --- Mémoire}
+\begin{center}
+\begin{tabular}{llllll}
+Algo & Code (o) & Données aux. (o) & Pile/cadre (o) & Profondeur pile & Pile max (o) \\
+\end{tabular}
+\end{center}
+
+La colonne \emph{Pile max} ($=$ cadre $\times$ profondeur) est la métrique clé pour comparer l'empreinte mémoire dynamique entre algos.
+
+\paragraph{Conclusion qualitative attendue.}
+
+On devrait retrouver dans les chiffres :
+\begin{itemize}
+    \item \textbf{Bulle} : lent ($O(n^2)$) mais mémoire minimale ($20$ o fixes).
+    \item \textbf{Fusion} : rapide ($O(n \log n)$) mais paye en mémoire ($4n$ o de buffer $+$ pile $\log_2 n$).
+    \item \textbf{Quicksort} : rapide en moyenne, mais pile variable selon les données $\rightarrow$ risqué sur gros $n$.
+\end{itemize}
+
+\end{document}
