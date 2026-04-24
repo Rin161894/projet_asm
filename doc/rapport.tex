@@ -259,62 +259,77 @@ cachées} (prologue/épilogue, appels de fonction, sauvegarde de registres)
 dominent l'avantage asymptotique. Le refactor vers un \texttt{swap}
 générique pénalise en plus les algos qui faisaient des échanges inlinés.
 
-\paragraph{Mesures confirmées à $n = 10\,000$.}
+\paragraph{Mesures wall-clock à $n = 1\,000$ et $n = 10\,000$.}
 
-Le passage à une taille réaliste confirme l'inversion attendue. Mesures
-prises en ligne de commande avec la commande intégrée du shell
-\texttt{time rars test\_tri\_XXX.asm} (pas de redirection de stdout,
-donc les deux \texttt{print\_tab} sont comptabilisés).
+Le passage à des tailles plus réalistes confirme l'inversion attendue.
+Mesures prises en ligne de commande avec \texttt{time rars
+test\_tri\_XXX.asm > /dev/null 2>\&1} --- stdout redirigé pour neutraliser
+le coût de rendu terminal des \texttt{print\_tab}, seuls restent les
+\texttt{ecall} système et le tri proprement dit.
 
-\begin{center}
-\begin{tabular}{lrrr}
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrr}
 \toprule
- & \textbf{Bulle} & \textbf{Tas} & \textbf{Ratio bulle/tas} \\
+\textbf{Algorithme} & \textbf{$n=20$ (instr.)} & \textbf{$n=1\,000$} & \textbf{$n=10\,000$} & \textbf{Complexité} \\
 \midrule
-Temps mur à $n = 20$       & $\sim$15 ms   & $\sim$25 ms   & $\times 0{,}6$ (bulle gagne) \\
-Temps mur à $n = 10\,000$   & \textbf{3 min 50 s} & \textbf{2{,}5 s} & $\times 92$ (tas gagne)      \\
+Tri à bulles      & 3\,034 & 2,50 s & 231,6 s & $O(n^2)$ \\
+Tri par sélection & ---    & 2,57 s & 223,9 s & $O(n^2)$ \\
+Tri par tas       & 3\,375 & \textbf{0,41 s} & \textbf{2,51 s} & $O(n \log n)$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Temps wall-clock pour chaque algorithme aux trois tailles
+de test. Les colonnes $n=1\,000$ et $n=10\,000$ sont en secondes ;
+la baseline JVM (programme vide) est d'environ $187$ ms.}
+\end{table}
 
-À $n = 10\,000$, le tri à bulles prend \textbf{plus de 3 minutes},
-contre \textbf{2,5 secondes} pour le tri par tas. L'écart mesuré
-($\times 92$) reste en deçà du ratio théorique
-$n / \log_2 n \approx 750$ ; la différence s'explique largement par le
-coût fixe de \texttt{print\_tab}, qui à $n = 10\,000$ affiche
-deux fois 10\,000 entiers sur le terminal et devient loin d'être
-négligeable devant le tri lui-même (notamment pour le tas).
+\paragraph{Observations clés.}
 
-\paragraph{Coût de \texttt{print\_tab} à grande échelle.}
+\begin{itemize}
+    \item À \textbf{$n=20$}, les constantes dominent et le tri par tas
+          est même \emph{plus coûteux} que la bulle en nombre
+          d'instructions ($3\,375$ vs $3\,034$).
+    \item À \textbf{$n=1\,000$}, l'écart O$(n^2)$ vs O$(n \log n)$ devient
+          visible : tas est $\times 6$ plus rapide que bulle et sélection.
+    \item À \textbf{$n=10\,000$}, l'écart explose : tas est $\times 92$
+          plus rapide. Ratio théorique $n / \log_2 n \approx 750$ ;
+          la différence s'explique par le coût des \texttt{ecall} de
+          \texttt{print\_tab} qui persiste même avec stdout redirigé,
+          plus significatif pour les algos rapides.
+    \item \textbf{Bulle et sélection sont empiriquement indiscernables}
+          en wall-clock à $n=1\,000$ et $n=10\,000$, malgré un nombre
+          d'échanges radicalement différent ($\sim n^2/2$ pour bulle,
+          exactement $n-1$ pour sélection). À cette échelle, le coût
+          des \textbf{comparaisons} (identique pour les deux) domine
+          celui des échanges.
+\end{itemize}
 
-Référence utile : démarrage \guillemotleft{} à vide \guillemotright{} de RARS (un
+\paragraph{Baseline et coût de \texttt{print\_tab}.}
+
+Le démarrage \guillemotleft{} à vide \guillemotright{} de RARS (un
 \texttt{.asm} qui termine immédiatement) $=$ \textbf{187 ms}. Tout ce
 qui dépasse cette baseline est imputable au programme de test.
 
-Pour isoler le coût du tri, on peut rediriger la sortie :
-\begin{lstlisting}[style=bash]
-time rars test_tri_bulle.asm > /dev/null
-\end{lstlisting}
-Le delta avec la commande sans redirection donne une estimation du
-coût de \texttt{print\_tab} seul. À grand $n$, ce coût devient
-significatif --- en pratique dominant pour les algorithmes rapides
-comme le tri par tas.
+Les \texttt{print\_tab} contribuent à hauteur du nombre d'\texttt{ecall}
+émis, même lorsque stdout est redirigé vers \texttt{/dev/null} : chaque
+\texttt{ecall} passe par la machine virtuelle RARS, qui a un coût fixe
+non négligeable. À $n = 10\,000$, cela représente $4 \cdot 10^4$
+\texttt{ecall} (deux appels à \texttt{print\_tab}, chacun faisant
+$n$ fois \texttt{print\_int} $+$ \texttt{print\_string}), dont le coût
+devient dominant pour le tri par tas.
 
-\paragraph{Conclusion : le rapport doit présenter deux jeux de mesures.}
-
-Les deux points de mesure ($n = 20$ et $n = 10\,000$) racontent des
-histoires différentes et sont tous les deux utiles :
+\paragraph{Conclusion : trois points de mesure complémentaires.}
 
 \begin{itemize}
-    \item \textbf{$n = 20$} : les constantes dominent ; bulle peut
-          battre tas. Sert à illustrer que la complexité asymptotique
-          n'est pas le seul critère à petite échelle.
-    \item \textbf{$n = 10\,000$} : le terme dominant prend le dessus ;
-          le classement théorique est rétabli. Sert à \emph{valider}
-          expérimentalement la complexité annoncée.
+    \item \textbf{$n = 20$ (instructions)} : les constantes dominent ;
+          la complexité asymptotique ne suffit pas à prédire l'ordre.
+          Utile pour illustrer le \emph{piège du petit $n$}.
+    \item \textbf{$n = 1\,000$ (wall-clock)} : l'écart O$(n^2)$ vs
+          O$(n \log n)$ devient visible sans attendre ; taille de dev
+          confortable pour itérer.
+    \item \textbf{$n = 10\,000$ (wall-clock)} : mise en évidence finale
+          de la bascule ; valide expérimentalement la complexité
+          annoncée.
 \end{itemize}
-
-Un rapport qui ne présenterait qu'un seul des deux points de mesure
-passerait à côté du sens de la comparaison algorithmique.
 
 \end{document}

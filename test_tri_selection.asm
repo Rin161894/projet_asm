@@ -13,10 +13,10 @@ main:
     lw   a1, tab_len          # a1 = taille du tableau
     jal  ra, print_tab
 
-    # --- Appel insertion_sort(tab, tab_len) ---
+    # --- Appel selection_sort(tab, tab_len) ---
     la   a0, tab
     lw   a1, tab_len
-    jal  ra, insertion_sort
+    jal  ra, selection_sort
 
     # --- Affichage "Apres" ---
     la   a0, msg2
@@ -35,4 +35,4 @@ main:
 .include "tab.asm"
 .include "print_tab.asm"
 .include "swap.asm"
-.include "tri_insertion.asm"
+.include "tri_selection.asm"

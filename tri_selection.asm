@@ -1,12 +1,12 @@
 # ref : https://fr.wikipedia.org/wiki/Tri_par_s%C3%A9lection
-# insertion_sort(v, n) : tri à insertion d'un tableau de n mots (int)
+# selection_sort(v, n) : tri par sélection d'un tableau de n mots (int)
 #
 #   Entrées : a0 = tab (adresse de base du tableau)
 #             a1 = n   (nombre d'éléments du tableau)
 #   Sortie  : a0 = tab (même adresse, tableau trié sur place)
 # ---------------------------------------------------------------
 .text
-insertion_sort:
+selection_sort:
     # Prologue : réserve 5 mots sur la pile + sauvegarde
     addi sp, sp, -20       # alloue 5 mots : sauvegarde ra + s3/s4/s5/s6
     sw   ra, 16(sp)        # sauve l'adresse de retour
@@ -29,13 +29,13 @@ insertion_sort:
     #   - boucle externe : i part de 0 et augmente jusqu'à n-1
     #   - boucle interne : j part de i+n et avant jusqu'à n
     # t3 = &min (indice du min en cours) ou min_idx
-tinsert_boucle_ext:             # Boucle externe : i de 0 à n-1
-    bge  s3, s6, tinsert_fin    # si i >= n  -> fin de la fonction
+tsel_boucle_ext:             # Boucle externe : i de 0 à n-1
+    bge  s3, s6, tsel_fin    # si i >= n  -> fin de la fonction
     mv t3, s3                   # On stocke i dans le minimum
     addi s4, s3, 1              # j = i + 1    (On initialise le compteur de la boucle interne)
 
-tinsert_boucle_int:        # Boucle interne : j de i+1 à n
-    bge s4, s6, tinsert_sortie_int   # si j >= n -> fin boucle interne
+tsel_boucle_int:        # Boucle interne : j de i+1 à n
+    bge s4, s6, tsel_sortie_int   # si j >= n -> fin boucle interne
     slli t0, s4, 2         # t0 = j * 4        (décalage en octets)
     add  t0, s5, t0        # t0 = &tab[j]      (t0 contient l'adresse mémoire de tab[j])
     lw   t1, 0(t0)         # t1 = tab[j]       (t1 contient la valeur de tab[j])
@@ -43,22 +43,22 @@ tinsert_boucle_int:        # Boucle interne : j de i+1 à n
     add  t2, s5, t2        # t2 = s5 + min_idx * 4 = &tab[min_idx]                                                                                                                                                                                          
     lw   t2, 0(t2)         # t2 = tab[min_idx] soit "min"   
   
-    bge  t1, t2, tinsert_next_boucle_int  # Si tab[j] >= min (inverse de min < tab[j]), on sort de la boucle interne.
+    bge  t1, t2, tsel_next_boucle_int  # Si tab[j] >= min (inverse de min < tab[j]), on sort de la boucle interne.
     mv   t3, s4             # Sinon min_idx = j
 
-tinsert_next_boucle_int:
+tsel_next_boucle_int:
     addi s4, s4, 1          # j = j + 1
-    j    tinsert_boucle_int # On passe à l'élément suivant de la boucle interne
+    j    tsel_boucle_int # On passe à l'élément suivant de la boucle interne
 
-tinsert_sortie_int:         # Sortie boucle interne
+tsel_sortie_int:         # Sortie boucle interne
     mv   a0, s5             # arg 1 de swap : tab
     mv   a1, t3             # arg 2 de swap : min_idx
     mv   a2, s3             # arg 3 de swap : i
     jal  swap               # swap(tab, minx_idx, i)
     addi s3, s3, 1          # i = i + 1
-    j    tinsert_boucle_ext #  On passe à l'élément suivant de la boucle externe
+    j    tsel_boucle_ext #  On passe à l'élément suivant de la boucle externe
 
-tinsert_fin:                # Epilogue : restauration des registres et retour
+tsel_fin:                # Epilogue : restauration des registres et retour
     mv   a0, s5             # a0 = tab            (valeur de retour)
     lw   s3,  0(sp)
     lw   s4,  4(sp)
