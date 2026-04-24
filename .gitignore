@@ -1,0 +1,5 @@
+# Fichiers temporaires Latex
+*.aux
+*.log
+*.out
+*.toc
