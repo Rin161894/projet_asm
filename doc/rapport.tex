@@ -126,12 +126,12 @@ python3 -c "import random; random.seed(); \
 \toprule
 \textbf{Algorithme} & \textbf{Instr. tot.} & \textbf{R} & \textbf{I} & \textbf{S} & \textbf{B} & \textbf{U} & \textbf{J} & \textbf{Pile (o)} & \textbf{Récursif} & \textbf{Complexité} \\
 \midrule
-Tri à bulles       & \textbf{2\,698} & 709 & 1\,097 & 235 & 322 & 48 & 287 & 20 & non & $O(n^2)$ \\
+Tri à bulles       & \textbf{3\,034} & 933 & 1\,209 & 235 & 322 & 48 & 287 & 20 & non & $O(n^2)$ \\
 Tri par sélection  &                 &     &        &     &     &    &     &    &     & $O(n^2)$ \\
 Tri par insertion  &                 &     &        &     &     &    &     &    &     & $O(n^2)$ \\
 Tri rapide         &                 &     &        &     &     &    &     &    & oui & $O(n \log n)$ moy. \\
 Tri fusion         &                 &     &        &     &     &    &     &    & oui & $O(n \log n)$ \\
-Tri par tas        & \textbf{2\,481} & 925 &    830 & 144 & 385 & 48 & 149 & 16 & non & $O(n \log n)$ \\
+Tri par tas        & \textbf{3\,375} & 1\,328 & 1\,138 & 260 & 385 & 48 & 216 & 32 & non & $O(n \log n)$ \\
 \bottomrule
 \end{tabular}
 \caption{Comparaison des algorithmes de tri sur un tableau de 20 entiers.}
@@ -235,5 +235,86 @@ On devrait retrouver dans les chiffres :
     \item \textbf{Fusion} : rapide ($O(n \log n)$) mais paye en mémoire ($4n$ o de buffer $+$ pile $\log_2 n$).
     \item \textbf{Quicksort} : rapide en moyenne, mais pile variable selon les données $\rightarrow$ risqué sur gros $n$.
 \end{itemize}
+
+\paragraph{Observation méthodologique : le piège du petit $n$.}
+
+À $n = 20$, avec toutes les primitives factorisées (\texttt{swap(tab, i, j)}
+générique, appels via \texttt{jal}), les premiers chiffres relevés montrent
+un résultat \emph{contre-intuitif} :
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+ & \textbf{Bulle} & \textbf{Tas} \\
+\midrule
+Instructions totales & 3\,034 & \textbf{3\,375} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Le tri par tas, pourtant $O(n \log n)$, est \textbf{plus coûteux} que la
+bulle à cette taille. L'explication est la même que partout en
+micro-benchmark algorithmique : à petit $n$, les \textbf{constantes
+cachées} (prologue/épilogue, appels de fonction, sauvegarde de registres)
+dominent l'avantage asymptotique. Le refactor vers un \texttt{swap}
+générique pénalise en plus les algos qui faisaient des échanges inlinés.
+
+\paragraph{Mesures confirmées à $n = 10\,000$.}
+
+Le passage à une taille réaliste confirme l'inversion attendue. Mesures
+prises en ligne de commande avec la commande intégrée du shell
+\texttt{time rars test\_tri\_XXX.asm} (pas de redirection de stdout,
+donc les deux \texttt{print\_tab} sont comptabilisés).
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+ & \textbf{Bulle} & \textbf{Tas} & \textbf{Ratio bulle/tas} \\
+\midrule
+Temps mur à $n = 20$       & $\sim$15 ms   & $\sim$25 ms   & $\times 0{,}6$ (bulle gagne) \\
+Temps mur à $n = 10\,000$   & \textbf{3 min 50 s} & \textbf{2{,}5 s} & $\times 92$ (tas gagne)      \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+À $n = 10\,000$, le tri à bulles prend \textbf{plus de 3 minutes},
+contre \textbf{2,5 secondes} pour le tri par tas. L'écart mesuré
+($\times 92$) reste en deçà du ratio théorique
+$n / \log_2 n \approx 750$ ; la différence s'explique largement par le
+coût fixe de \texttt{print\_tab}, qui à $n = 10\,000$ affiche
+deux fois 10\,000 entiers sur le terminal et devient loin d'être
+négligeable devant le tri lui-même (notamment pour le tas).
+
+\paragraph{Coût de \texttt{print\_tab} à grande échelle.}
+
+Référence utile : démarrage « à vide » de RARS (un
+\texttt{.asm} qui termine immédiatement) $=$ \textbf{187 ms}. Tout ce
+qui dépasse cette baseline est imputable au programme de test.
+
+Pour isoler le coût du tri, on peut rediriger la sortie :
+\begin{lstlisting}[style=bash]
+time rars test_tri_bulle.asm > /dev/null
+\end{lstlisting}
+Le delta avec la commande sans redirection donne une estimation du
+coût de \texttt{print\_tab} seul. À grand $n$, ce coût devient
+significatif --- en pratique dominant pour les algorithmes rapides
+comme le tri par tas.
+
+\paragraph{Conclusion : le rapport doit présenter deux jeux de mesures.}
+
+Les deux points de mesure ($n = 20$ et $n = 10\,000$) racontent des
+histoires différentes et sont tous les deux utiles :
+
+\begin{itemize}
+    \item \textbf{$n = 20$} : les constantes dominent ; bulle peut
+          battre tas. Sert à illustrer que la complexité asymptotique
+          n'est pas le seul critère à petite échelle.
+    \item \textbf{$n = 10\,000$} : le terme dominant prend le dessus ;
+          le classement théorique est rétabli. Sert à \emph{valider}
+          expérimentalement la complexité annoncée.
+\end{itemize}
+
+Un rapport qui ne présenterait qu'un seul des deux points de mesure
+passerait à côté du sens de la comparaison algorithmique.
 
 \end{document}
