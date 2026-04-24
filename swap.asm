@@ -1,18 +1,21 @@
-# ref : https://www.laurentbloch.net/MySpip3/Assembleur-RISC-V-maintenant-les-tris
-# ---------------------------------------------------------------
-# swap(v, k) : échange v[k] et v[k+1] dans un tableau de mots (int)
+# ref : adapté de Patterson & Hennessy / Laurent Bloch
+# swap(tab, i, j) : échange tab[i] et tab[j] dans un tableau de mots
 #
-#   Entrées : a0 = v  (adresse de base du tableau)
-#             a1 = k  (indice du 1er élément à échanger)
-#   Sortie  : aucune  (tableau modifié en mémoire)
-#   Détruit : t0, t1, t2
+#   Entrées : a0 = tab  (adresse de base du tableau)
+#             a1 = i    (premier indice)
+#             a2 = j    (second indice)
+#   Sortie  : aucune    (tableau modifié en mémoire)
+# Cette fonction est réutilisable dans les tris, elle ne fait 
+# qu'échanger deux éléments du tableau tab[i] <-> tab[j]
 # ---------------------------------------------------------------
 .text
 swap:
-    slli t1, a1, 2     # t1 = k * 4            (indice -> décalage en octets)
-    add  t1, a0, t1    # t1 = v + k*4          (adresse de v[k])
-    lw   t0, 0(t1)     # t0 = v[k]             (sauvegarde ancienne valeur)
-    lw   t2, 4(t1)     # t2 = v[k+1]
-    sw   t2, 0(t1)     # v[k]   <- t2          (= ancien v[k+1])
-    sw   t0, 4(t1)     # v[k+1] <- t0          (= ancien v[k])
-    ret   	       # retour à l'appelant
+    slli t0, a1, 2     # t0 = i * 4            (décalage en octets de tab[i])
+    add  t0, a0, t0    # t0 = &tab[i]          (adresse de tab[i])
+    slli t1, a2, 2     # t1 = j * 4            (décalage en octets de tab[j])
+    add  t1, a0, t1    # t1 = &tab[j]          (adresse de tab[j])
+    lw   t2, 0(t0)     # t2 = tab[i]           (sauvegarde de l'ancienne valeur)
+    lw   t3, 0(t1)     # t3 = tab[j]           (sauvegarde de l'ancienne valeur)
+    sw   t3, 0(t0)     # tab[i] <- t3          (= ancien tab[j])
+    sw   t2, 0(t1)     # tab[j] <- t2          (= ancien tab[i])
+    ret                # retour à l'appelant
