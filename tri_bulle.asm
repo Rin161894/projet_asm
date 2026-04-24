@@ -25,11 +25,11 @@ bubble_sort:
     mv   s6, a1            # s6 = n            (taille du tableau)
     li   s3, 0             # i  = 0            (On initialise le compteur de la boucle externe)
     
-    # Structure des deux boucles :                                                                                                                                                                                                                    
-    #   - boucle externe : i part de 0 et augmente jusqu'à n-1                                                                                                                                                                                        
+    # Structure des deux boucles :
+    #   - boucle externe : i part de 0 et augmente jusqu'à n-1
     #     à la fin de la passe i, les i premières cases sont triées.
     #   - boucle interne : j part de i-1 et diminue jusqu'à 0
-    #     on fait "descendre" le nouvel élément vers sa place                                                                                                                                                                                       
+    #     on fait "descendre" le nouvel élément vers sa place
     # Variante de Patterson & Hennessy : contrairement au tri à bulles classique où les deux indices augmentent.
     # Ici l'indice interne décroit.
 tb_boucle_ext:             # Boucle externe : i de 0 à n-1
