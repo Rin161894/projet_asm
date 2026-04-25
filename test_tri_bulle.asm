@@ -48,7 +48,9 @@ no_tab2:
     ecall
 
 # --- Dépendances ---
+# On peut tester des tableaux déjà triés ou non en commentant et décommentant un des deux lignes suivantes
 .include "tab.asm"
+# .include "tab_trie.asm"
 .include "header.asm"
 .include "print_tab.asm"
 .include "swap.asm"
